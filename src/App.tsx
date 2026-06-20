@@ -512,6 +512,7 @@ export default function App() {
           {isBookmarked && <div className="reader-bookmark-indicator" />}
         </div>
         <button className="reader-turn reader-turn-left" aria-label="이전 페이지" onClick={(event) => { event.currentTarget.blur(); if (!escMenu) navRef.current?.previous(); }} />
+        <button className="reader-turn reader-turn-center" aria-label="메뉴 열기" onClick={(event) => { event.currentTarget.blur(); setEscMenu(v => !v); }} />
         <button className="reader-turn reader-turn-right" aria-label="다음 페이지" onClick={(event) => { event.currentTarget.blur(); if (!escMenu) navRef.current?.next(); }} />
         {escMenu && <><div className="overlay-blur" /><div className="modal-layer"><div className="esc-card">
           <button className="esc-close-button" aria-label="메뉴 닫기" onClick={() => setEscMenu(false)}>✕</button>
