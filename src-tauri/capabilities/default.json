@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Local book file access selected by the reader",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "dialog:allow-message",
+    "dialog:allow-ask",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-stat",
+    "fs:allow-exists"
+  ]
+}
