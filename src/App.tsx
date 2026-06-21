@@ -87,39 +87,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [introActive, setIntroActive] = useState(true);
-  const [introProgress, setIntroProgress] = useState(0);
-  const [introText, setIntroText] = useState("앱 초기화 중...");
   const navRef = useRef<{ next: () => void; previous: () => void; go: (p: number) => void } | null>(null);
 
   useEffect(() => {
-    const start = Date.now();
-    const duration = 1200;
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const currentProgress = Math.min(100, Math.floor((elapsed / duration) * 100));
-      setIntroProgress(currentProgress);
-      if (currentProgress < 25) {
-        setIntroText("앱 초기화 중...");
-      } else if (currentProgress < 60) {
-        setIntroText("도서 목록을 로드하는 중...");
-      } else if (currentProgress < 90) {
-        setIntroText(`전체 페이지를 계산하는 중... ${Math.floor(currentProgress / 1.5)}%`);
-      } else {
-        setIntroText("준비 완료!");
-      }
-      if (currentProgress >= 100) {
-        clearInterval(timer);
-      }
-    }, 16);
-
-    const fadeTimer = setTimeout(() => {
+    const closeTimer = setTimeout(() => {
       setIntroActive(false);
-    }, 1600);
+    }, 2000);
 
-    return () => {
-      clearInterval(timer);
-      clearTimeout(fadeTimer);
-    };
+    return () => clearTimeout(closeTimer);
   }, []);
 
   useEffect(() => { localStorage.setItem("durumari.settings", JSON.stringify(settings)); }, [settings]);
@@ -476,33 +451,25 @@ export default function App() {
 
   return <main className={`app ${themeClass}`}>
     {introActive && (
-      <div className="app-intro-screen">
+      <section className="app-intro-screen" aria-label="두루마리 앱 시작 화면">
         <div className="intro-container">
           <div className="intro-visual">
-            <div className="intro-roller intro-roller-top" />
-            <div className="intro-paper">
-              <div className="intro-paper-lines">
-                <div className="intro-line intro-line-1" />
-                <div className="intro-line intro-line-2" />
-                <div className="intro-line intro-line-3" />
-              </div>
+            <div className="scroll-shadow" />
+            <div className="scroll-roller top"><i /><b /><i /></div>
+            <div className="scroll-paper">
+              <div className="paper-fiber" />
+              <div className="calligraphy">나랏말싸미 듕귁에 달아 문자와로 서르 사맛디 아니할쎄 이런 젼차로 어린 백셩이 니르고져 홀 배 이셔도 마참내 제 뜨들 시러 펴디 못할 노미 하니라 내 이랄 위하야 어엿비 너겨 새로 스믈여듧 자랄 맹가노니 사람마다 해어 수비 니겨 날로 쓰메 편안케 하고져 할 따라미니라</div>
+              <div className="seal">훈<br />민</div>
             </div>
-            <div className="intro-roller intro-roller-bottom" />
+            <div className="scroll-roller bottom"><i /><b /><i /></div>
+            <div className="scroll-cord" />
           </div>
-
           <div className="intro-brand">
-            <h1 className="intro-title">두 루 마 리</h1>
-            <p className="intro-subtitle">나만의 디지털 두루마리</p>
-          </div>
-
-          <div className="intro-loading">
-            <div className="intro-progress-bar">
-              <div className="intro-progress-fill" style={{ width: `${introProgress}%` }} />
-            </div>
-            <div className="intro-status-text">{introText}</div>
+            <h1 className="intro-title">두루마리</h1>
+            <p className="intro-subtitle">나만의 문서 뷰어</p>
           </div>
         </div>
-      </div>
+      </section>
     )}
     {!book ? <LibraryView tab={tab} setTab={setTab} search={search} setSearch={setSearch} books={filteredBooks} sources={sources} activeSourceId={activeSourceId} onSelectSource={setActiveSourceId} onRemoveSource={removeSource} history={history} bookmarks={bookmarks} onOpen={openBook} onOpenHistory={openFromList} onAdd={() => setAddSourceOpen(true)} onSettings={() => setSettingsOpen(true)} activeSource={activeSource} settings={settings} setSettings={setSettings} /> :
       <section className="reader-screen">
@@ -807,7 +774,12 @@ function SettingsModal({ initialSettings, onConfirm, onClose, onResetSettings, o
   useEffect(() => { setSettings(initialSettings); }, [initialSettings]);
   const onChange = setSettings;
 
-  const range = (label: string, key: "fontSize" | "lineHeight" | "letterSpacing" | "paddingTop" | "paddingBottom" | "paddingLeft" | "paddingRight", min: number, max: number, step: number, unit = "") => <div className="setting-line"><span>{label}</span><input type="range" min={min} max={max} step={step} value={settings[key]} onChange={(e) => onChange((s) => ({ ...s, [key]: Number(e.target.value) }))} /><b>{settings[key]}{unit}</b></div>;
+  const range = (label: string, key: "fontSize" | "lineHeight" | "letterSpacing" | "paddingTop" | "paddingBottom" | "paddingLeft" | "paddingRight", min: number, max: number, step: number, unit = "") => <div className="setting-line"><span>{label}</span><input type="range" min={min} max={max} step={step} value={settings[key]} onChange={(e) => {
+    const value = Number(e.target.value);
+    onChange((s) => s.paddingLinked && (key === "paddingLeft" || key === "paddingRight")
+      ? { ...s, paddingLeft: value, paddingRight: value }
+      : { ...s, [key]: value });
+  }} /><b>{settings[key]}{unit}</b></div>;
   return <><div className="overlay-blur" onClick={onClose} /><div className="modal-layer"><div className="dialog settings-dialog">
     <div className="dialog-title"><b>⚙️ 설정</b><button onClick={onClose}>✕</button></div>
     
@@ -845,7 +817,7 @@ function SettingsModal({ initialSettings, onConfirm, onClose, onResetSettings, o
       <h3>🛠️ 데이터 및 설정 관리</h3>
       <div className="settings-data-actions" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
         <button className="wpf-button" onClick={onResetSettings}>⚙️ 설정 초기화</button>
-        <button className="wpf-button" style={{ color: "#d32f2f" }} onClick={onClearFolders}>🗑️ 등록 폴더 전체 해제</button>
+        <button className="wpf-button" style={{ color: "#d32f2f" }} onClick={onClearFolders}>🗑️ 폴더 전체 해제</button>
       </div>
     </div>
     

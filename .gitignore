@@ -7,3 +7,6 @@ vite.config.d.ts
 src-tauri/target/
 
 dist-tauri/
+
+.idea/
+inst_user_settings.tmp

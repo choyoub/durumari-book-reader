@@ -17,6 +17,9 @@ export function EpubReader({ bytes, settings, initialCfi, initialProgress = 0, o
   const host = useRef<HTMLDivElement>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const bookRef = useRef<Book | null>(null);
+  const progressRef = useRef(initialProgress);
+  const atStartRef = useRef(initialProgress <= 0);
+  const atEndRef = useRef(initialProgress >= 1);
 
   useEffect(() => {
     if (!host.current) return;
@@ -28,8 +31,16 @@ export function EpubReader({ bytes, settings, initialCfi, initialProgress = 0, o
     bookRef.current = book;
     renditionRef.current = rendition;
     let userNavigated = false;
-    const next = () => { userNavigated = true; return rendition.next(); };
-    const previous = () => { userNavigated = true; return rendition.prev(); };
+    const next = () => {
+      if (atEndRef.current) return;
+      userNavigated = true;
+      return rendition.next();
+    };
+    const previous = () => {
+      if (atStartRef.current) return;
+      userNavigated = true;
+      return rendition.prev();
+    };
     rendition.themes.register("reader-fonts", "/fonts/fonts.css");
     rendition.themes.select("reader-fonts");
     rendition.themes.default({
@@ -52,7 +63,7 @@ export function EpubReader({ bytes, settings, initialCfi, initialProgress = 0, o
     });
     onPageInfo(1, 1, true);
 
-    const relocated = (location: { start: { cfi: string; percentage?: number; index?: number; displayed?: { page: number; total: number } }; atEnd?: boolean }) => {
+    const relocated = (location: { start: { cfi: string; percentage?: number; index?: number; displayed?: { page: number; total: number } }; atStart?: boolean; atEnd?: boolean }) => {
       const cfi = location.start.cfi;
       const locations = book.locations;
       const total = locations.length();
@@ -64,6 +75,9 @@ export function EpubReader({ bytes, settings, initialCfi, initialProgress = 0, o
         ? Math.max(0, current) / Math.max(1, total - 1)
         : Math.min(1, ((location.start.index ?? 0) + chapterProgress) / spineCount);
       const progress = location.atEnd ? 1 : calculatedProgress;
+      progressRef.current = progress;
+      atStartRef.current = !!location.atStart || progress <= 0;
+      atEndRef.current = !!location.atEnd || progress >= 1;
       onProgress(progress, cfi);
       onPageInfo(displayed.page, displayed.total, false);
     };
@@ -97,10 +111,12 @@ export function EpubReader({ bytes, settings, initialCfi, initialProgress = 0, o
       next: () => { void next(); },
       previous: () => { void previous(); },
       go: (progress) => {
-        userNavigated = true;
+        const safeProgress = Math.max(0, Math.min(1, progress));
+        if (Math.abs(safeProgress - progressRef.current) < .0001) return;
         void (async () => {
+          userNavigated = true;
           if (!book.locations.length()) await book.locations.generate(1600);
-          const cfi = book.locations.cfiFromPercentage(Math.max(0, Math.min(1, progress)));
+          const cfi = book.locations.cfiFromPercentage(safeProgress);
           if (cfi) await rendition.display(cfi);
         })();
       }
